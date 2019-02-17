@@ -12,6 +12,8 @@ export default class AI {
 
     return this._a;
   }
+  /** provides current level points */
+  get points() {return this._points;}
   /** provides current level board size */
   get boardSize() { return this._boardSize;}
   /** provides current level usedWords */
@@ -65,6 +67,7 @@ export default class AI {
    * - etc.
    */
   endBoard() {
+    this._points = 0;
     this._boardSize = this._defaultBoardSize;
     this._usedWords = [];
     this._mainDictionary = null;
@@ -184,6 +187,8 @@ export default class AI {
     }
 
     this._usedWords.push(word);
+
+    this._checkPointsForWord(word);
 
     return true;
   }
@@ -528,5 +533,18 @@ export default class AI {
     }
 
     return word;
+  }
+  /** checks if possible points for a word and adds it if needed */
+  _checkPointsForWord(word) {
+    if (!word || this._usedWords.length < 3) return;
+    word = word.toLowerCase();
+
+    let firstLetterID = this._getLetterID([...word][0]);
+
+    let wordsArray = this._getWordsArrayByLetterID(firstLetterID, 1);
+
+    if (wordsArray.find((element)=>{return element === word;})) {
+      this._points += word.length;
+    }
   }
 }
