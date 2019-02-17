@@ -1,4 +1,2 @@
 import AI from './ai';
-import Cat from './cat.js';
-import Dog from './dog.js';
-export { Dog, Cat, AI };
+export { AI };
