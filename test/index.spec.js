@@ -1,7 +1,7 @@
 /* global describe, it, before */
 
 import chai from 'chai';
-// import {AI} from '../lib/wordsai.lib.js';
+// import {AI} from '../lib/wordsai.js';
 
 chai.expect();
 

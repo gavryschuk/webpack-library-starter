@@ -1,2 +1,2 @@
 import AI from './ai';
-export { AI };
+export default AI;

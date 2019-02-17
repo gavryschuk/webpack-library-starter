@@ -173,7 +173,7 @@ export default class AI {
         if (vertical && !this._isAVerticalBlocker(targetElement)) this._board[targetY][targetX] += 1;
         if (!vertical && !this._isAHorizontalBlocker(targetElement)) this._board[targetY][targetX] += 2;
       }
-    });
+    }, this);
 
     if (vertical) {
       if (startY) this._board[startY - 1][startX] = 3;
@@ -474,7 +474,7 @@ export default class AI {
         totalFreeCounter += anyCounter;
         anyCounter = 0;
       }
-    });
+    }, this);
 
     totalFreeCounter += anyCounter;
     if (anyCounter) regExp += '[a-z]{0,' + anyCounter + '}';
@@ -519,7 +519,7 @@ export default class AI {
             !this.isUsedWord(element) && (!word || element.length > word.length)) {
           word = element;
         }
-      });
+      }, this);
 
       if (word) break;
 

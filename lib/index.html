@@ -1,0 +1,156 @@
+<html>
+  <head>
+    <title>Words Library Client</title>
+    <link rel="stylesheet" href="./index.css">
+    <script   src="https://code.jquery.com/jquery-3.3.1.js"   integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="   crossorigin="anonymous"></script>
+    <script src='./wordsai.min.js'></script>
+  </head>
+  <body>
+    <script>
+      
+      let start = function(){
+        $("body").empty();
+        $('body').append('Loading dictionaries...');
+        setTimeout(()=>{createAI();},1000);
+      }
+
+      window.dictionaries = [];
+
+      loadDictionary = ( filePath, dictionaryType, callback = null ) =>{
+        let rawFile = new XMLHttpRequest();
+        rawFile.open("GET", filePath, false);
+        rawFile.onreadystatechange = function () {
+          if(rawFile.readyState === 4) 
+            if(rawFile.status === 200 || rawFile.status == 0){
+              $('body').append('<br/>Loaded ' + rawFile.responseURL);
+              window.dictionaries.push({
+                'string':rawFile.responseText.toString(),
+                'type':dictionaryType
+              })
+              if(callback) setTimeout(()=>{callback(rawFile);},500);
+            }
+        }
+        rawFile.send(null);
+      }
+
+      let createAI = (  ) => {
+        window.try = 0;
+        let dictionaries = [
+          { path: './en.txt', type:0},
+          { path: './sat.txt', type:1},
+          // { path: './toefl.txt', type:1}
+        ];
+        window.AI = new wordsai();
+        dictionariesCounter = 0;
+        let loadCallback = (element)=>{
+          console.error(element);
+          $('body').append('<br/>Adding dictionary ' + element.responseURL.toString() + ' ...');
+          setTimeout(()=>{
+            if(element.responseURL.toString().includes('en.txt') ) window.AI.addMainDictionary(element.responseURL.toString(), element.responseText );
+            else window.AI.addSecondaryDictionary(element.responseURL.toString(),element.responseText );
+            if(dictionariesCounter){
+              window.AI.startBoard(13);
+              console.log(window.AI.board);
+              $("body").empty();
+              appendBoard();
+            }
+            dictionariesCounter++;
+          },500);
+        }
+        dictionaries.forEach( (element) => {
+          loadDictionary(element.path, element.type, loadCallback );
+        });
+      };
+
+      let appendBoard = ()=>{
+        // $('div').last().remove();
+        $('input').last().remove();
+        $('body').append(window.try + '</br>');
+        $('body').append('<table></table>');
+        for(let y = 0; y<window.AI.boardSize; y++){
+          let str = '<tr>';
+          for(let x = 0; x<window.AI.boardSize; x++){
+            let element = window.AI.board[y][x];
+            let classType = 'blue';
+            if(typeof element !== 'string'){
+              switch(parseInt(element)){
+                case 0:
+                  classType = 'yellow';
+                  break;
+                case 1:
+                  classType = 'orange';
+                  break;
+                case 2:
+                  classType = 'orangered';
+                  break;
+                case 4:
+                  classType = 'green';
+                  break;
+                case 5:
+                  classType = 'greenyellow';
+                  break;
+                default:
+                  classType = 'red';
+                  break;
+              }
+            }
+            
+            let classString = 'class="'+ classType + '"';
+            str += '<td ' + classString + ' >'+element+'</td>';
+          }
+          str += '</tr>';
+          $('table').last().append( str );
+        }
+
+        appendHint();
+        window.try++;
+        $("html, body").animate({ scrollTop: $(document).height() }, 1000);
+      }
+
+      let appendHint = () => {
+        $('body').append('<div>Looking For A hint. Please Wait. If no hint found -> you will see the notification.</div>');
+        setTimeout(()=>{
+          let hint = window.AI.getHintWord();
+          $('div').last().remove();
+          if(hint.word ){
+            $('body').append('<div>HINT: x: ' + hint.x + ' y: ' + hint.y + ' vertical: ' + hint.vertical + ' word: ' + hint.word + '</div>');
+            $('body').append('<input type="button" value="add hint" onClick="javascript:insertWord(' + hint.x + ',' + hint.y + ',' + hint.vertical + ',\'' + hint.word + '\');"/>');
+            appendUserWord();
+
+          } else {
+            $('body').append('<div>No Hint found! Game Over. Reload the page.</div>');
+          }
+        },1000);
+      }
+
+      let appendUserWord = () => {
+        let userInputHTML = '<div id="userInputDiv">';
+            userInputHTML += 'USER Word: <br>';
+            userInputHTML += 'x:<input type="number" id="userInputX" min="0" max="13" value="0"><br/>';
+            userInputHTML += 'y:<input type="number" id="userInputY" min="0" max="13" value="0"><br/>';
+            userInputHTML += 'vertical: <select id="userInputVertical"><option value="0">false</option><option value="1">true</option></select><br/>';
+            userInputHTML += 'word:<input type="text" id="userInputWord"><br/>';
+            userInputHTML += '<input type="button" value="add user word" onClick="javascript:insertWord(parseInt($(\'#userInputX\').val()),parseInt($(\'#userInputY\').val()),!!parseInt($(\'#userInputVertical\').val()),$(\'#userInputWord\').val().toString());"><br/>';
+            userInputHTML += '</div>';
+            $('body').append( userInputHTML );
+      }
+
+      let insertWord = ( x, y, vertical, word) => {
+        if(window.AI.addWord(x, y, word, vertical)){ 
+          $('#userInputDiv').last().remove();
+          appendBoard();
+        }else {
+          // $('input').last().remove();
+          // appendUserWord();
+          $('body').append('<div>Error! Word is not added.</div>');
+          
+        }
+
+      }
+
+      // run
+      $("body").append('<input type="button" value="START" onClick="javascript:start();"/>');
+      
+    </script>
+  </body>
+</html>
