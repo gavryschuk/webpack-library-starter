@@ -374,8 +374,8 @@ export default class AI {
         if (l < returnWord.length &&
             returnWord[l].toString() === this._board[y][x].toString() &&
             (vertical ? y : x) - l >= 0 && (vertical ? y : x) - l + returnWord.length <= this._boardSize) {
-          let checkX = vertical ? x : x + regExpObject.between + (regExpObject.between ? 1 : 0);
-          let checkY = vertical ? y + regExpObject.between + (regExpObject.between ? 1 : 0) : y;
+          let checkX = vertical ? x : (x + regExpObject.between + (regExpObject.between ? 1 : 0));
+          let checkY = vertical ? (y + regExpObject.between + (regExpObject.between ? 1 : 0)) : y;
 
           if (this._board[checkY][checkX] === returnWord[l + regExpObject.between + (regExpObject.between ? 1 : 0)]) {
             returnX = vertical ? x : x - l;
@@ -420,42 +420,64 @@ export default class AI {
     let isBottomBlocked = false;
     let lettersCounter = 0;
 
+    let checkIfBlocker = (element) =>{
+      let isVerticalBlocker = vertical && this._isAVerticalBlocker(element);
+      let isHorizontalBlocker = !vertical && this._isAHorizontalBlocker(element);
+
+      return (isVerticalBlocker || isHorizontalBlocker);
+    };
+
+    let checkTopElement = (x, y, i, lettersCounter)=>{
+      if ((vertical ? (y - i) : (x - i)) > 0) {
+        if (lettersCounter && this._isAString(this._board[vertical ? (y - i - 1) : y][vertical ? x : (x - i - 1)])) {
+          wordArray[vertical ? (y - i - 1) : (x - i - 1)] = null;
+        }
+      }
+    };
+
     for (let i = 1; i < iDiff; i++) {
+      let element = null;
+
       // check movement top/left
       if ((vertical ? y : x) - i >= 0 && !isTopBlocked) {
-        let element = this._board[vertical ? y - i : y][vertical ? x : x - i];
+        element = this._board[vertical ? (y - i) : y][vertical ? x : (x - i)];
 
-        if (vertical && this._isAVerticalBlocker(element) || !vertical && this._isAHorizontalBlocker(element)) {
+        if (checkIfBlocker(element)) {
           if (this._isAString(element) && !lettersCounter) {
-            wordArray[vertical ? y - i : x - i] = element;
+            wordArray[vertical ? (y - i) : (x - i)] = element;
             lettersCounter++;
           } else {
             isTopBlocked = true;
-            if (i > 1 && this._isAString(element)) wordArray[vertical ? y - i + 1 : x - i + 1] = null;
+            if (i > 1 && this._isAString(element)) wordArray[ vertical ? (y - i + 1) : (x - i + 1)] = null;
           }
         } else {
-          wordArray[vertical ? y - i : x - i] = '[a-z]';
+          wordArray[vertical ? (y - i) : (x - i)] = '[a-z]';
         }
       }
+
       // check movement bottom/right
       if ((vertical ? y : x) + i < this._boardSize && !isBottomBlocked) {
-        let _element = this._board[vertical ? y + i : y][vertical ? x : x + i];
+        element = this._board[vertical ? (y + i) : y][vertical ? x : (x + i)];
 
-        if (vertical && this._isAVerticalBlocker(_element) || !vertical && this._isAHorizontalBlocker(_element)) {
-          if (this._isAString(_element) && !lettersCounter) {
-            wordArray[vertical ? y + i : x + i] = _element;
+        if (checkIfBlocker(element)) {
+          if (this._isAString(element) && !lettersCounter) {
+            wordArray[vertical ? (y + i) : (x + i)] = element;
             lettersCounter++;
           } else {
             isBottomBlocked = true;
-            if (i > 1 && this._isAString(_element)) wordArray[vertical ? y + i - 1 : x + i - 1] = null;
+            if (i > 1 && this._isAString(element)) wordArray[vertical ? (y + i - 1) : (x + i - 1)] = null;
+            // check the above on top element isn't blocker
+            checkTopElement(x, y, i, lettersCounter);
           }
         } else {
-          wordArray[vertical ? y + i : x + i] = '[a-z]';
+          wordArray[vertical ? (y + i) : (x + i)] = '[a-z]';
+          // check the above on top element isn't blocker
+          checkTopElement(x, y, i, lettersCounter);
         }
       }
     }
-    // geenerate regular expression
 
+    // geenerate regular expression
     regExp += '^(';
     let beforeLetterCounter = 0;
     let anyCounter = 0;

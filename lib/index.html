@@ -49,7 +49,7 @@
             if(element.responseURL.toString().includes('en.txt') ) window.AI.addMainDictionary(element.responseURL.toString(), element.responseText );
             else window.AI.addSecondaryDictionary(element.responseURL.toString(),element.responseText );
             if(dictionariesCounter){
-              window.AI.startBoard(13);
+              window.AI.startBoard(10);
               console.log(window.AI.board);
               $("body").empty();
               appendBoard();
