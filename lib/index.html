@@ -14,19 +14,13 @@
         setTimeout(()=>{createAI();},1000);
       }
 
-      window.dictionaries = [];
-
-      loadDictionary = ( filePath, dictionaryType, callback = null ) =>{
+      loadDictionary = ( filePath, callback = null ) =>{
         let rawFile = new XMLHttpRequest();
         rawFile.open("GET", filePath, false);
         rawFile.onreadystatechange = function () {
           if(rawFile.readyState === 4) 
             if(rawFile.status === 200 || rawFile.status == 0){
               $('body').append('<br/>Loaded ' + rawFile.responseURL);
-              window.dictionaries.push({
-                'string':rawFile.responseText.toString(),
-                'type':dictionaryType
-              })
               if(callback) setTimeout(()=>{callback(rawFile);},500);
             }
         }
@@ -34,44 +28,82 @@
       }
 
       let createAI = (  ) => {
+        window.BE = new wordsai.BE();
+        window.FE = new wordsai.FE();
         window.try = 0;
-        let dictionaries = [
-          { path: './en.txt', type:0},
-          { path: './sat.txt', type:1},
-          // { path: './toefl.txt', type:1}
+        window.dictionaries = [
+          { path: './en.txt'},
+          { path: './sat.txt'},
+          { path: './toefl.txt'}
         ];
-        window.AI = new wordsai();
         dictionariesCounter = 0;
         let loadCallback = (element)=>{
           console.error(element);
           $('body').append('<br/>Adding dictionary ' + element.responseURL.toString() + ' ...');
           setTimeout(()=>{
-            if(element.responseURL.toString().includes('en.txt') ) window.AI.addMainDictionary(element.responseURL.toString(), element.responseText );
-            else window.AI.addSecondaryDictionary(element.responseURL.toString(),element.responseText );
-            if(dictionariesCounter){
-              window.AI.startBoard(10);
-              console.log(window.AI.board);
-              $("body").empty();
-              appendBoard();
-            }
             dictionariesCounter++;
+            if(element.responseURL.toString().includes('en.txt') ) window.BE.loadMainDictionary(element.responseText);
+            else window.BE.loadSecondaryDictionary(element.responseURL.toString(), element.responseText);
+            console.log(element.responseURL.toString());
+            if(dictionariesCounter === window.dictionaries.length){
+              console.log('starting board');
+              window.FE.startBoard(10);
+              console.log(window.FE.board);
+              
+              chooseDictionary();
+            }
           },500);
         }
         dictionaries.forEach( (element) => {
-          loadDictionary(element.path, element.type, loadCallback );
+          loadDictionary(element.path, loadCallback );
         });
       };
+
+      let chooseDictionary = ()=>{
+        $("body").empty();
+        let dicts = window.BE.getSecondaryDictionaries();
+        let userInputHTML = '<div id="userInputDiv">';
+            userInputHTML += 'Pick up dictionary: <br>';
+            userInputHTML += '<select id="userInputDictionary">';
+              dicts.forEach((element,index)=>{
+                userInputHTML += '<option value="'+element+'" '+((!index) ? 'selected="selected"' : '') +'>'+element+'</option>';
+              });
+              userInputHTML += '</select><br/>';
+            userInputHTML += '<input type="button" value="choose" onClick="javascript:window.selectedDictionary=$(\'#userInputDictionary\').val();startBoard();"><br/>';
+            userInputHTML += '</div>';
+            $('body').append( userInputHTML );
+      }
+
+      let startBoard = ()=>{
+        $("body").empty();       
+        $('body').append('<br/>Searching for initial word ...');
+        let regExps = window.FE.getPossibleWordRegExp();
+        $('body').append('<br/>');
+          regExps.forEach((element,index)=>{
+            $('body').append(index + ' : ' + element.toString());
+            $('body').append('<br/>');
+          })
+          let hintsArray = window.BE.getHint(regExps, window.selectedDictionary);
+          let hint = window.FE.getHintFromWordsArray(hintsArray);
+          $('body').append('<br/>');
+          $('body').append('Hint:' + hint );
+          $('body').append('<br/>Adding to the board.....<br/>');
+          window.FE.addWordRandomly(hint);
+          regExps = null;
+          hintsArray = null;
+          appendBoard();
+      }
 
       let appendBoard = ()=>{
         // $('div').last().remove();
         $('input').last().remove();
-        $('body').append(window.try + '</br>');
-        $('body').append('Points:'+ window.AI.points + '</br>');
+        $('body').append('<br/>Try: ' + window.try);
+        $('body').append('<br/>Points:'+ window.FE.points + '</br>');
         $('body').append('<table></table>');
-        for(let y = 0; y<window.AI.boardSize; y++){
+        for(let y = 0; y<window.FE.boardSize; y++){
           let str = '<tr>';
-          for(let x = 0; x<window.AI.boardSize; x++){
-            let element = window.AI.board[y][x];
+          for(let x = 0; x<window.FE.boardSize; x++){
+            let element = window.FE.board[y][x];
             let classType = 'blue';
             if(typeof element !== 'string'){
               switch(parseInt(element)){
@@ -111,13 +143,23 @@
       let appendHint = () => {
         $('body').append('<div>Looking For A hint. Please Wait. If no hint found -> you will see the notification.</div>');
         setTimeout(()=>{
-          let hint = window.AI.getHintWord();
           $('div').last().remove();
-          if(hint.word ){
-            $('body').append('<div>HINT: x: ' + hint.x + ' y: ' + hint.y + ' vertical: ' + hint.vertical + ' word: ' + hint.word + '</div>');
-            $('body').append('<input type="button" value="add hint" onClick="javascript:insertWord(' + hint.x + ',' + hint.y + ',' + hint.vertical + ',\'' + hint.word + '\');"/>');
+          let regExps = window.FE.getPossibleWordRegExp();
+          $('body').append('<br/>');
+          regExps.forEach((element,index)=>{
+            $('body').append(index + ' : ' + element.toString());
+            $('body').append('<br/>');
+          })
+          let hintsArray = window.BE.getHint(regExps,window.selectedDictionary);
+          let hint = window.FE.getHintFromWordsArray(hintsArray);
+          $('body').append('<br/>');
+          $('body').append('Hint:' + hint );
+          regExps = null;
+          hintsArray = null;
+          if( hint ) {
+            $('body').append('<br/>');
+            $('body').append('<input type="button" value="add hint randomly" onClick="javascript:addWordRandomly(\'' + hint + '\');"/>');
             appendUserWord();
-
           } else {
             $('body').append('<div>No Hint found! Game Over. Reload the page.</div>');
           }
@@ -136,15 +178,31 @@
             $('body').append( userInputHTML );
       }
 
+      let addWordRandomly = (word)=>{
+        let stats = window.BE.getWordStats(word, window.selectedDictionary);
+        if(stats.exists){
+          if(window.FE.addWordRandomly( word, stats.points )){ 
+            $('#userInputDiv').last().remove();
+            appendBoard();
+          }else {
+            $('body').append('<div>Error! Word is not added.</div>');
+          }
+        }else{
+          $('body').append('<div>Error! Word doesn\'t exist.</div>');
+        }
+      }
+
       let insertWord = ( x, y, vertical, word) => {
-        if(window.AI.addWord(x, y, word, vertical)){ 
-          $('#userInputDiv').last().remove();
-          appendBoard();
-        }else {
-          // $('input').last().remove();
-          // appendUserWord();
-          $('body').append('<div>Error! Word is not added.</div>');
-          
+        let stats = window.BE.getWordStats(word, window.selectedDictionary);
+        if(stats.exists){
+          if(window.FE.addWord(x, y, word, vertical, stats.points)){ 
+            $('#userInputDiv').last().remove();
+            appendBoard();
+          }else {
+            $('body').append('<div>Error! Word is not added.</div>');
+          }
+        }else{
+          $('body').append('<div>Error! Word doesn\'t exist.</div>');
         }
 
       }

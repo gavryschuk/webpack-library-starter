@@ -1,2 +1,3 @@
-import AI from './ai';
-export default AI;
+import BE from './BE';
+import FE from './FE';
+export default { BE, FE};
